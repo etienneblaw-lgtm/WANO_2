@@ -20,7 +20,7 @@
       position:absolute;
       inset:0;
       display:none;
-      overflow-y:auto;
+      overflow-y:scroll; /* scroll fixe evite la boucle layout scrollbar */
       background:#000;
       z-index:1;
     }
@@ -229,26 +229,25 @@ Bienvenue, citoyen.
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
 
-    // ── MANIFESTO — requestAnimationFrame, 5 chars/frame ──
-    let rafId, charIndex = 0, done = false;
+    // ── MANIFESTO — setTimeout 40ms, 8 chars/tick ──
+    // Utilise setTimeout au lieu de rAF pour eviter la boucle layout
+    // causee par overflow-y:auto + textContent croissant a 60fps.
+    let timerId = null, charIndex = 0, done = false;
 
     function startManifesto() {
       manifestoScreen.classList.add('active');
       charIndex = 0;
       done = false;
       manifestoTextEl.textContent = '';
-      rafId = requestAnimationFrame(typeFrame);
+      timerId = setTimeout(typeChunk, 16);
     }
 
-    function typeFrame() {
-      // Write 5 chars per frame (~60fps → ~300 chars/sec → ~3s total)
-      const chunkSize = 5;
-      const end = Math.min(charIndex + chunkSize, MANIFESTO.length);
+    function typeChunk() {
+      const end = Math.min(charIndex + 8, MANIFESTO.length);
       manifestoTextEl.textContent = MANIFESTO.slice(0, end);
       charIndex = end;
-
       if (charIndex < MANIFESTO.length) {
-        rafId = requestAnimationFrame(typeFrame);
+        timerId = setTimeout(typeChunk, 40);
       } else {
         finishTyping();
       }
@@ -258,27 +257,25 @@ Bienvenue, citoyen.
       done = true;
       manifestoCursor.style.display = 'none';
       continueHint.style.display = 'block';
-      manifestoScreen.addEventListener('click', goToDashboard);
-      document.addEventListener('keydown', goToDashboard);
     }
 
     function skipTyping() {
       if (done) return;
-      cancelAnimationFrame(rafId);
+      clearTimeout(timerId);
       manifestoTextEl.textContent = MANIFESTO;
       finishTyping();
     }
 
-    // Click during typing → skip ; click after → dashboard
-    manifestoScreen.addEventListener('click', () => { if (!done) skipTyping(); });
+    manifestoScreen.addEventListener('click', () => {
+      if (!done) { skipTyping(); } else { goToDashboard(); }
+    });
+
     document.addEventListener('keydown', e => {
       if (!manifestoScreen.classList.contains('active')) return;
       if (!done) { skipTyping(); } else { goToDashboard(); }
     });
 
     function goToDashboard() {
-      manifestoScreen.removeEventListener('click', goToDashboard);
-      document.removeEventListener('keydown', goToDashboard);
       manifestoScreen.classList.remove('active');
       dashboardScreen.classList.add('active');
       startDashboard();
