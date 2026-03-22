@@ -46,7 +46,7 @@
       inset:0;
       background:#000;
       display:none;
-      overflow:hidden;       /* pas de calcul scroll height pendant la frappe */
+      overflow:hidden;
       cursor:pointer;
       z-index:10;
       padding:3rem 2rem 5rem;
@@ -110,7 +110,7 @@ FIREWALL .............................................. <span class="highlight">
     </div>
   </div>
 
-  <!-- MANIFESTO (hors .screen pour eviter les interactions CSS) -->
+  <!-- MANIFESTO -->
   <div id="manifesto">
     <div id="mtext"></div><span id="mcursor"></span>
     <div id="mhint">[ CLIQUER OU APPUYER SUR UNE TOUCHE POUR CONTINUER ]</div>
@@ -170,14 +170,13 @@ root@wano:~$ <span style="border-right:8px solid #00ff00;animation:blink 1s step
   </div>
 
   <script>
-    // ── ELEMENTS ──
-    const loginScreen    = document.getElementById('loginScreen');
-    const dashboardScreen= document.getElementById('dashboardScreen');
-    const pwInput        = document.getElementById('pwInput');
-    const mEl            = document.getElementById('manifesto');
-    const mText          = document.getElementById('mtext');
-    const mCursor        = document.getElementById('mcursor');
-    const mHint          = document.getElementById('mhint');
+    const loginScreen     = document.getElementById('loginScreen');
+    const dashboardScreen = document.getElementById('dashboardScreen');
+    const pwInput         = document.getElementById('pwInput');
+    const mEl             = document.getElementById('manifesto');
+    const mText           = document.getElementById('mtext');
+    const mCursor         = document.getElementById('mcursor');
+    const mHint           = document.getElementById('mhint');
 
     const TEXT = `R\u00c9PUBLIQUE OF WANO
 \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
@@ -232,7 +231,7 @@ Bienvenue, citoyen.
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
 
-    // ── MANIFESTO ── machine a etats : 'typing' | 'done'
+    // ── MANIFESTO ──
     let state = 'idle', idx = 0, timer = null;
 
     function startManifesto() {
@@ -243,9 +242,9 @@ Bienvenue, citoyen.
       mHint.style.display = 'none';
       mEl.style.display = 'block';
 
-      // Listeners attaches ICI, enleves quand on quitte
       mEl.addEventListener('click', onInteract);
-      document.addEventListener('keydown', onInteract);
+      // setTimeout(0) evite que le Enter du login soit capture immediatement
+      setTimeout(() => document.addEventListener('keydown', onInteract), 0);
 
       timer = setTimeout(tick, 20);
     }
@@ -268,12 +267,10 @@ Bienvenue, citoyen.
 
     function onInteract() {
       if (state === 'typing') {
-        // 1er clic/touche : affiche tout immediatement
         clearTimeout(timer);
         mText.textContent = TEXT;
         onTypingDone();
       } else if (state === 'done') {
-        // 2e clic/touche : passe au dashboard
         state = 'idle';
         mEl.removeEventListener('click', onInteract);
         document.removeEventListener('keydown', onInteract);
