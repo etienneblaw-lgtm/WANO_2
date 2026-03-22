@@ -64,6 +64,28 @@
     .btn-push:hover { background:#00ff00; color:#000; }
     .btn-push:disabled { opacity:0.4; cursor:not-allowed; }
     .push-note { font-size:0.72rem; color:#333; margin-top:0.6rem; line-height:1.5; }
+
+    /* ── UPLOAD PANEL ── */
+    .dropzone {
+      border:1px dashed #333;
+      padding:2rem 1rem;
+      text-align:center;
+      cursor:pointer;
+      transition:border-color 0.2s, background 0.2s;
+      position:relative;
+    }
+    .dropzone:hover, .dropzone.drag-over { border-color:#00ff00; background:#001100; }
+    .dropzone input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+    .dropzone-label { font-size:0.82rem; color:#555; pointer-events:none; }
+    .dropzone-label span { color:#00ff00; }
+    .upload-progress { margin-top:1rem; display:none; }
+    .upload-progress.visible { display:block; }
+    .progress-bar-track { height:3px; background:#1a1a1a; margin-top:0.5rem; }
+    .progress-bar-fill { height:100%; background:#00ff00; width:0%; transition:width 0.2s; }
+    .progress-label { font-size:0.72rem; color:#555; margin-top:0.3rem; }
+    .uploaded-file { margin-top:0.8rem; font-size:0.75rem; color:#226622; word-break:break-all; display:none; }
+    .uploaded-file.visible { display:block; }
+
     @media (max-width:900px) { .main { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -98,6 +120,25 @@
 
   <div class="main">
     <div>
+
+      <!-- UPLOAD PANEL -->
+      <div class="panel">
+        <div class="panel-title">[ UPLOAD FICHIER AUDIO ]</div>
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept="audio/*">
+          <div class="dropzone-label">
+            Glisse un fichier ici<br>ou <span>clique pour sélectionner</span>
+          </div>
+        </div>
+        <div class="upload-progress" id="uploadProgress">
+          <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">0%</div>
+        </div>
+        <div class="uploaded-file" id="uploadedFile"></div>
+        <div id="uploadStatus" class="status"></div>
+      </div>
+
+      <!-- TRACK FORM -->
       <div class="panel">
         <div class="panel-title">[ <span id="formMode">AJOUTER UNE TRACK</span> ]</div>
         <div class="field-row">
@@ -147,7 +188,7 @@
       <div class="panel">
         <div class="panel-title">[ PUBLIER SUR LE SITE ]</div>
         <button class="btn-push" id="pushBtn" onclick="pushToGitHub()">⬆ PUBLIER LES TRACKS</button>
-        <div class="push-note">Netlify redéploiera automatiquement dans ~30 secondes.</div>
+        <div class="push-note">GitHub Pages redéploiera automatiquement dans ~30 secondes.</div>
         <div id="pushStatus" class="status"></div>
       </div>
     </div>
@@ -155,17 +196,19 @@
 </div>
 
 <script>
-  const GH_USER  = 'etienneblaw-lgtm';
-  const GH_REPO  = 'WANO_2';
-  const GH_TOKEN = localStorage.getItem("wano_gh_token") || "";
-  const GH_FILE  = 'tracks_grid.html';
-  const R2_BASE  = 'https://pub-a27a87aee8d64445bd42afcc0ae8ed45.r2.dev/';
-  const PASSWORD = 'aa';
+  const GH_USER      = 'etienneblaw-lgtm';
+  const GH_REPO      = 'WANO_2';
+  const GH_FILE      = 'tracks_grid.html';
+  const R2_BASE      = 'https://pub-a27a87aee8d64445bd42afcc0ae8ed45.r2.dev/';
+  const WORKER_URL   = 'https://wano-upload.etienne-blaw.workers.dev';
+  const PASSWORD     = 'aa';
+
+  let ghToken = localStorage.getItem('wano_gh_token') || '';
 
   function doLogin() {
     const token = document.getElementById('ghToken').value.trim();
     if (document.getElementById('pwInput').value === PASSWORD) {
-      if (token) localStorage.setItem('wano_gh_token', token);
+      if (token) { ghToken = token; localStorage.setItem('wano_gh_token', token); }
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('app').classList.add('visible');
       tracks = JSON.parse(localStorage.getItem('wano_tracks') || '[]');
@@ -180,6 +223,73 @@
   });
   setTimeout(() => document.getElementById('pwInput').focus(), 100);
 
+  // ── UPLOAD ──
+  const dropzone    = document.getElementById('dropzone');
+  const fileInput   = document.getElementById('fileInput');
+  const uploadProg  = document.getElementById('uploadProgress');
+  const progFill    = document.getElementById('progressFill');
+  const progLabel   = document.getElementById('progressLabel');
+  const uploadedEl  = document.getElementById('uploadedFile');
+  const uploadStatus = document.getElementById('uploadStatus');
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) uploadFile(fileInput.files[0]);
+  });
+
+  function uploadFile(file) {
+    uploadProg.classList.add('visible');
+    uploadedEl.classList.remove('visible');
+    showStatus(uploadStatus, 'loading', 'Upload en cours…');
+    progFill.style.width = '0%';
+    progLabel.textContent = '0%';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', WORKER_URL);
+    xhr.setRequestHeader('X-Password', PASSWORD);
+
+    xhr.upload.addEventListener('progress', e => {
+      if (e.lengthComputable) {
+        const pct = Math.round((e.loaded / e.total) * 100);
+        progFill.style.width = pct + '%';
+        progLabel.textContent = pct + '%';
+      }
+    });
+
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 200) {
+        const res = JSON.parse(xhr.responseText);
+        progFill.style.width = '100%';
+        progLabel.textContent = '100%';
+        showStatus(uploadStatus, 'ok', '✓ Fichier uploadé : ' + res.filename);
+        uploadedEl.textContent = res.url;
+        uploadedEl.classList.add('visible');
+        // Auto-fill the filename field in the form
+        document.getElementById('f-filename').value = res.filename;
+        updatePreview();
+      } else {
+        let msg = 'Erreur ' + xhr.status;
+        try { msg = JSON.parse(xhr.responseText).error || msg; } catch {}
+        showStatus(uploadStatus, 'err', '⊘ ' + msg);
+      }
+    });
+
+    xhr.addEventListener('error', () => showStatus(uploadStatus, 'err', '⊘ Erreur réseau'));
+
+    xhr.send(formData);
+  }
+
+  // ── TRACKS ──
   let tracks = [];
   let editingId = null;
   let currentTags = [];
@@ -290,11 +400,12 @@
     const btn = document.getElementById('pushBtn');
     const status = document.getElementById('pushStatus');
     if (tracks.length===0) { showStatus(status,'err','Aucune track à publier.'); return; }
+    if (!ghToken) { showStatus(status,'err','Token GitHub manquant — reconnecte-toi.'); return; }
     btn.disabled=true;
     try {
       showStatus(status,'loading','Lecture du fichier sur GitHub…');
       const getRes = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,
-        { headers:{ Authorization:`token ${GH_TOKEN}`, Accept:'application/vnd.github.v3+json' } });
+        { headers:{ Authorization:`token ${ghToken}`, Accept:'application/vnd.github.v3+json' } });
       if (!getRes.ok) throw new Error('Impossible de lire le fichier ('+getRes.status+')');
       const fileData = await getRes.json();
       const sha = fileData.sha;
@@ -310,10 +421,10 @@
 
       showStatus(status,'loading','Publication sur GitHub…');
       const pushRes = await fetch(`https://api.github.com/repos/${GH_USER}/${GH_REPO}/contents/${GH_FILE}`,
-        { method:'PUT', headers:{ Authorization:`token ${GH_TOKEN}`, Accept:'application/vnd.github.v3+json', 'Content-Type':'application/json' },
+        { method:'PUT', headers:{ Authorization:`token ${ghToken}`, Accept:'application/vnd.github.v3+json', 'Content-Type':'application/json' },
           body: JSON.stringify({ message:`update tracks — ${new Date().toISOString().slice(0,16)}`, content: btoa(unescape(encodeURIComponent(newContent))), sha }) });
       if (!pushRes.ok) { const e=await pushRes.json(); throw new Error(e.message||'Erreur '+pushRes.status); }
-      showStatus(status,'ok','✓ Publié ! Netlify redéploie dans ~30 secondes.');
+      showStatus(status,'ok','✓ Publié ! GitHub Pages redéploie dans ~30 secondes.');
     } catch(e) {
       showStatus(status,'err','⊘ '+e.message);
     } finally {
