@@ -223,15 +223,14 @@ Bienvenue, citoyen.
     // ── LOGIN ──
     pwInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && pwInput.value === 'aa') {
+        e.stopPropagation(); // empeche le Enter de remonter au document et de skipper le manifesto
         loginScreen.classList.remove('active');
         startManifesto();
       }
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
 
-    // ── MANIFESTO — 1 char toutes les 25ms ──
-    // Le vrai fix du freeze etait overflow-y:scroll sur .screen.
-    // Maintenant on peut faire du char-by-char sans boucle layout.
+    // ── MANIFESTO — 1 char / 25ms ──
     let timerId = null, charIndex = 0, done = false;
 
     function startManifesto() {
