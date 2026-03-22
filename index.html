@@ -176,20 +176,20 @@ root@wano:~$ <span style="border-right:8px solid #00ff00;animation:blink 1s step
     const manifestoCursor = document.getElementById('manifesto-cursor');
     const continueHint    = document.getElementById('continueHint');
 
-    const MANIFESTO = `RÉPUBLIQUE OF WANO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const MANIFESTO = `R\u00c9PUBLIQUE OF WANO
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 MANIFESTE v1.0
 
 
-Dans le vide saturé du bruit numérique,
-nous traçons des sillons sonores.
+Dans le vide satur\u00e9 du bruit num\u00e9rique,
+nous tra\u00e7ons des sillons sonores.
 
-Chaque fréquence est un territoire.
-Chaque silence, une déclaration.
+Chaque fr\u00e9quence est un territoire.
+Chaque silence, une d\u00e9claration.
 
 Nous ne produisons pas de la musique pour remplir l'espace,
-mais pour révéler ce qui existe déjà
+mais pour r\u00e9v\u00e9ler ce qui existe d\u00e9j\u00e0
 dans les interstices du silence.
 
 
@@ -202,56 +202,62 @@ Un refuge pour les architectures sonores autonomes.
 
 
 Ici, pas de playlist algorithmique.
-Pas de métrique d'engagement.
-Pas d'optimisation pour la viralité.
+Pas de m\u00e9trique d'engagement.
+Pas d'optimisation pour la viralit\u00e9.
 
 Seulement :
   - Des fichiers audio
-  - Des métadonnées minimales
-  - Un accès direct
+  - Des m\u00e9tadonn\u00e9es minimales
+  - Un acc\u00e8s direct
 
 
 Ce terminal est une porte.
-Ce que tu y trouveras dépend de ce que tu cherches.
+Ce que tu y trouveras d\u00e9pend de ce que tu cherches.
 
 
 Bienvenue, citoyen.
 
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;
 
     // ── LOGIN ──
     pwInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && pwInput.value === 'aa') {
-        e.stopPropagation(); // empeche le Enter de remonter au document et de skipper le manifesto
+        e.stopPropagation(); // empeche Enter de remonter et de skipper le manifesto
         loginScreen.classList.remove('active');
         startManifesto();
       }
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
 
-    // ── MANIFESTO — 1 char / 25ms ──
+    // ── MANIFESTO ──
+    // Hypothese principale du freeze : overflow-y:scroll + textContent croissant
+    // = recalcul scroll height a chaque caractere.
+    // Fix : overflow:hidden PENDANT la frappe (pas besoin de scroll pendant l'animation)
+    // + intervalle 30ms (suffisamment lent pour que le layout finisse avant le tick suivant)
     let timerId = null, charIndex = 0, done = false;
 
     function startManifesto() {
+      manifestoScreen.style.overflowY = 'hidden'; // desactive scroll pendant typing
       manifestoScreen.classList.add('active');
       charIndex = 0;
       done = false;
       manifestoTextEl.textContent = '';
-      timerId = setTimeout(typeChar, 25);
+      timerId = setTimeout(typeChar, 30);
     }
 
     function typeChar() {
       charIndex++;
       manifestoTextEl.textContent = MANIFESTO.slice(0, charIndex);
       if (charIndex < MANIFESTO.length) {
-        timerId = setTimeout(typeChar, 25);
+        timerId = setTimeout(typeChar, 30);
       } else {
         finishTyping();
       }
     }
 
     function finishTyping() {
+      manifestoScreen.style.overflowY = ''; // restaure scroll apres animation
       done = true;
       manifestoCursor.style.display = 'none';
       continueHint.style.display = 'block';
