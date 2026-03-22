@@ -317,7 +317,7 @@
 
   function updatePreview() {
     const v = document.getElementById('f-filename').value.trim();
-    document.getElementById('r2-preview').textContent = v ? R2_BASE + v : '';
+    document.getElementById('r2-preview').textContent = v ? R2_BASE + encodeURIComponent(v) : '';
   }
 
   function submitTrack() {
@@ -329,7 +329,7 @@
     const status   = document.getElementById('formStatus');
     if (!title) { showStatus(status,'err','Le titre est obligatoire.'); return; }
     if (!year)  { showStatus(status,'err',"L'année est obligatoire."); return; }
-    const src = filename ? R2_BASE + filename : '';
+    const src = filename ? R2_BASE + encodeURIComponent(filename) : '';
     if (editingId) {
       const idx = tracks.findIndex(t=>t.id===editingId);
       if (idx>=0) tracks[idx] = { id:editingId, title, year, type, tags:[...currentTags], src, desc };
@@ -374,7 +374,8 @@
     document.getElementById('f-year').value=t.year;
     document.getElementById('f-type').value=t.type;
     document.getElementById('f-desc').value=t.desc||'';
-    document.getElementById('f-filename').value=t.src?t.src.replace(R2_BASE,''):'';
+    // Decode the URL back to a plain filename for editing
+    document.getElementById('f-filename').value=t.src?decodeURIComponent(t.src.replace(R2_BASE,'')):'';
     updatePreview(); currentTags=[...t.tags]; renderTags();
     document.getElementById('submitBtn').textContent='✓ MODIFIER LA TRACK';
     document.getElementById('formMode').textContent='MODIFIER LA TRACK';
