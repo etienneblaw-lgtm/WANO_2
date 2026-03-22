@@ -330,14 +330,14 @@
     //  TRACK DATA — replace src with your R2 URLs
     // ══════════════════════════════════════════
     const TRACKS = [
-      { id:'w1774191988002', title:'test', year:2025, type:'release', tags:[], src:'https://pub-a27a87aee8d64445bd42afcc0ae8ed45.r2.dev/Disco discours avant tirage.mp3', desc:'test' }
+      { id:'w1774191988002', title:'test', year:2025, type:'release', tags:[], src:'https://pub-a27a87aee8d64445bd42afcc0ae8ed45.r2.dev/Disco%20discours%20avant%20tirage.mp3', desc:'test' }
     ];
 
     // ══════════════════════════════════════════
     //  STATE
     // ══════════════════════════════════════════
-    let currentIndex = -1;   // index in TRACKS
-    let visibleTracks = [];  // filtered subset
+    let currentIndex = -1;
+    let visibleTracks = [];
     let isPlaying = false;
 
     const audio    = document.getElementById('audio-engine');
@@ -358,7 +358,6 @@
 
     let currentFilter = 'all';
 
-    // ── ASCII ART GENERATOR ──
     function genArt(id, type) {
       const patterns = {
         release:    ['█','▓','▒','░'],
@@ -376,7 +375,6 @@
       return art;
     }
 
-    // ── WAVE BARS ──
     function makeWave(n = 12) {
       const div = document.createElement('div');
       div.className = 'wave';
@@ -390,7 +388,6 @@
       return div;
     }
 
-    // ── FORMAT TIME ──
     function fmtTime(s) {
       if (!s || isNaN(s)) return '0:00';
       const m = Math.floor(s / 60);
@@ -398,13 +395,11 @@
       return m + ':' + sec;
     }
 
-    // ── CARD FACTORY ──
     function createCard(track, globalIdx) {
       const card = document.createElement('div');
       card.className = 'card';
       card.id = 'card-' + track.id;
 
-      // Art
       const art = document.createElement('div');
       art.className = 'card-art';
       const pre = document.createElement('pre');
@@ -412,7 +407,6 @@
       art.appendChild(pre);
       art.appendChild(makeWave());
 
-      // Inner
       const inner = document.createElement('div');
       inner.className = 'card-inner';
 
@@ -474,7 +468,6 @@
       return card;
     }
 
-    // ── RENDER ──
     function render() {
       grid.innerHTML = '';
       const q = search.value.toLowerCase().trim();
@@ -491,11 +484,9 @@
         const gi = TRACKS.indexOf(t);
         grid.appendChild(createCard(t, gi));
       });
-      // Restore playing state visuals
       if (currentIndex >= 0) refreshCardStates();
     }
 
-    // ── CARD VISUAL STATE ──
     function refreshCardStates() {
       document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'));
       document.querySelectorAll('.play-btn').forEach(b => b.classList.remove('active'));
@@ -510,7 +501,6 @@
       }
     }
 
-    // ── PLAYER ENGINE ──
     function loadAndPlay(idx) {
       currentIndex = idx;
       const t = TRACKS[idx];
@@ -550,7 +540,6 @@
     });
 
     audio.addEventListener('ended', () => {
-      // Autoplay next
       const nextIdx = getAdjacentIdx(1);
       if (nextIdx !== null) loadAndPlay(nextIdx);
     });
@@ -562,7 +551,6 @@
       gpTime.textContent = fmtTime(audio.currentTime) + ' / ' + fmtTime(audio.duration);
     });
 
-    // ── SEEK ──
     gpBar.addEventListener('click', (e) => {
       if (!audio.duration) return;
       const rect = gpBar.getBoundingClientRect();
@@ -570,10 +558,8 @@
       audio.currentTime = pct * audio.duration;
     });
 
-    // ── VOLUME ──
     gpVol.addEventListener('input', () => { audio.volume = gpVol.value; });
 
-    // ── CONTROLS ──
     gpPlay.addEventListener('click', () => {
       if (currentIndex < 0) return;
       if (isPlaying) audio.pause(); else audio.play();
@@ -598,7 +584,6 @@
       if (idx !== null) loadAndPlay(idx);
     });
 
-    // ── FILTERS & SEARCH ──
     filtersEl.addEventListener('click', (e) => {
       if (!e.target.classList.contains('filter-btn')) return;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -608,7 +593,6 @@
     });
     search.addEventListener('input', render);
 
-    // ── KEYBOARD ──
     document.addEventListener('keydown', (e) => {
       if (e.key === '/' && document.activeElement !== search) {
         e.preventDefault(); search.focus(); search.select();
@@ -621,7 +605,6 @@
       if (e.key === 'ArrowLeft')  { const i = getAdjacentIdx(-1); if (i !== null) loadAndPlay(i); }
     });
 
-    // ── INIT ──
     render();
   </script>
 </body>
