@@ -20,7 +20,7 @@
       position:absolute;
       inset:0;
       display:none;
-      overflow-y:scroll;
+      overflow-y:auto;
       background:#000;
       z-index:1;
     }
@@ -38,48 +38,10 @@
     }
     input::placeholder { color:#666; }
     .prompt { margin-top:1rem; }
-
-    /* ── MANIFESTO ── */
-    #manifestoScreen {
-      padding:3rem 2rem 5rem;
-      cursor:pointer;
-    }
-    #manifestoText {
-      max-width:700px;
-      margin:0 auto;
-      white-space:pre-wrap;
-      line-height:1.8;
-      font-size:16px;
-      color:#fff;
-    }
-    #manifesto-cursor {
-      display:inline-block;
-      width:9px; height:17px;
-      background:#00ff00;
-      margin-left:2px;
-      vertical-align:text-bottom;
-      animation:blink-cur 0.7s step-end infinite;
-    }
-    @keyframes blink-cur { 0%,50%{opacity:1} 51%,100%{opacity:0} }
-
-    .continue-hint {
-      position:fixed;
-      bottom:2rem; left:50%;
-      transform:translateX(-50%);
-      font-size:0.82rem;
-      color:#00ff00;
-      display:none;
-      animation:blink 1.2s step-end infinite;
-      white-space:nowrap;
-    }
-    @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
-
     .highlight { color:#00ff00; font-weight:bold; }
 
     @media (max-width:600px) {
       .container { padding:1rem; font-size:14px; }
-      #manifestoScreen { padding:1.5rem 1rem 5rem; }
-      #manifestoText { font-size:14px; }
     }
   </style>
 </head>
@@ -106,12 +68,6 @@ FIREWALL .............................................. <span class="highlight">
         <pre>root@wano:~$ <input type="password" id="pwInput" placeholder="enter passphrase" autocomplete="off" /></pre>
       </div>
     </div>
-  </div>
-
-  <!-- MANIFESTO -->
-  <div id="manifestoScreen" class="screen">
-    <div id="manifestoText"></div><span id="manifesto-cursor"></span>
-    <div class="continue-hint" id="continueHint">[ CLIQUER OU APPUYER SUR UNE TOUCHE POUR CONTINUER ]</div>
   </div>
 
   <!-- DASHBOARD -->
@@ -169,121 +125,18 @@ root@wano:~$ <span style="border-right:8px solid #00ff00;animation:blink 1s step
 
   <script>
     const loginScreen     = document.getElementById('loginScreen');
-    const manifestoScreen = document.getElementById('manifestoScreen');
     const dashboardScreen = document.getElementById('dashboardScreen');
     const pwInput         = document.getElementById('pwInput');
-    const manifestoTextEl = document.getElementById('manifestoText');
-    const manifestoCursor = document.getElementById('manifesto-cursor');
-    const continueHint    = document.getElementById('continueHint');
-
-    const MANIFESTO = `R\u00c9PUBLIQUE OF WANO
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
-
-MANIFESTE v1.0
-
-
-Dans le vide satur\u00e9 du bruit num\u00e9rique,
-nous tra\u00e7ons des sillons sonores.
-
-Chaque fr\u00e9quence est un territoire.
-Chaque silence, une d\u00e9claration.
-
-Nous ne produisons pas de la musique pour remplir l'espace,
-mais pour r\u00e9v\u00e9ler ce qui existe d\u00e9j\u00e0
-dans les interstices du silence.
-
-
-WANO n'est pas un label.
-WANO n'est pas une marque.
-
-WANO est un protocole.
-Une infrastructure pour les transmissions non-commerciales.
-Un refuge pour les architectures sonores autonomes.
-
-
-Ici, pas de playlist algorithmique.
-Pas de m\u00e9trique d'engagement.
-Pas d'optimisation pour la viralit\u00e9.
-
-Seulement :
-  - Des fichiers audio
-  - Des m\u00e9tadonn\u00e9es minimales
-  - Un acc\u00e8s direct
-
-
-Ce terminal est une porte.
-Ce que tu y trouveras d\u00e9pend de ce que tu cherches.
-
-
-Bienvenue, citoyen.
-
-
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`;
 
     // ── LOGIN ──
     pwInput.addEventListener('keydown', e => {
       if (e.key === 'Enter' && pwInput.value === 'aa') {
-        e.stopPropagation(); // empeche Enter de remonter et de skipper le manifesto
         loginScreen.classList.remove('active');
-        startManifesto();
+        dashboardScreen.classList.add('active');
+        startDashboard();
       }
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
-
-    // ── MANIFESTO ──
-    // Hypothese principale du freeze : overflow-y:scroll + textContent croissant
-    // = recalcul scroll height a chaque caractere.
-    // Fix : overflow:hidden PENDANT la frappe (pas besoin de scroll pendant l'animation)
-    // + intervalle 30ms (suffisamment lent pour que le layout finisse avant le tick suivant)
-    let timerId = null, charIndex = 0, done = false;
-
-    function startManifesto() {
-      manifestoScreen.style.overflowY = 'hidden'; // desactive scroll pendant typing
-      manifestoScreen.classList.add('active');
-      charIndex = 0;
-      done = false;
-      manifestoTextEl.textContent = '';
-      timerId = setTimeout(typeChar, 30);
-    }
-
-    function typeChar() {
-      charIndex++;
-      manifestoTextEl.textContent = MANIFESTO.slice(0, charIndex);
-      if (charIndex < MANIFESTO.length) {
-        timerId = setTimeout(typeChar, 30);
-      } else {
-        finishTyping();
-      }
-    }
-
-    function finishTyping() {
-      manifestoScreen.style.overflowY = ''; // restaure scroll apres animation
-      done = true;
-      manifestoCursor.style.display = 'none';
-      continueHint.style.display = 'block';
-    }
-
-    function skipTyping() {
-      if (done) return;
-      clearTimeout(timerId);
-      manifestoTextEl.textContent = MANIFESTO;
-      finishTyping();
-    }
-
-    manifestoScreen.addEventListener('click', () => {
-      if (!done) { skipTyping(); } else { goToDashboard(); }
-    });
-
-    document.addEventListener('keydown', e => {
-      if (!manifestoScreen.classList.contains('active')) return;
-      if (!done) { skipTyping(); } else { goToDashboard(); }
-    });
-
-    function goToDashboard() {
-      manifestoScreen.classList.remove('active');
-      dashboardScreen.classList.add('active');
-      startDashboard();
-    }
 
     // ── DASHBOARD ──
     let startTime;
