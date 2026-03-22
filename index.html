@@ -20,7 +20,7 @@
       position:absolute;
       inset:0;
       display:none;
-      overflow-y:scroll; /* scroll fixe evite la boucle layout scrollbar */
+      overflow-y:scroll;
       background:#000;
       z-index:1;
     }
@@ -229,9 +229,9 @@ Bienvenue, citoyen.
     });
     window.addEventListener('load', () => setTimeout(() => pwInput.focus(), 100));
 
-    // ── MANIFESTO — setTimeout 40ms, 8 chars/tick ──
-    // Utilise setTimeout au lieu de rAF pour eviter la boucle layout
-    // causee par overflow-y:auto + textContent croissant a 60fps.
+    // ── MANIFESTO — 1 char toutes les 25ms ──
+    // Le vrai fix du freeze etait overflow-y:scroll sur .screen.
+    // Maintenant on peut faire du char-by-char sans boucle layout.
     let timerId = null, charIndex = 0, done = false;
 
     function startManifesto() {
@@ -239,15 +239,14 @@ Bienvenue, citoyen.
       charIndex = 0;
       done = false;
       manifestoTextEl.textContent = '';
-      timerId = setTimeout(typeChunk, 16);
+      timerId = setTimeout(typeChar, 25);
     }
 
-    function typeChunk() {
-      const end = Math.min(charIndex + 8, MANIFESTO.length);
-      manifestoTextEl.textContent = MANIFESTO.slice(0, end);
-      charIndex = end;
+    function typeChar() {
+      charIndex++;
+      manifestoTextEl.textContent = MANIFESTO.slice(0, charIndex);
       if (charIndex < MANIFESTO.length) {
-        timerId = setTimeout(typeChunk, 40);
+        timerId = setTimeout(typeChar, 25);
       } else {
         finishTyping();
       }
